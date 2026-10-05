@@ -1,0 +1,8 @@
+{
+  "name": "ABIDES Market Simulation Dashboard",
+  "description": "Interactive market simulation dashboard powered by ABIDES multi-agent discrete-event simulation engine with Limit Order Book, EKF agents, and news sentiment modeling.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
