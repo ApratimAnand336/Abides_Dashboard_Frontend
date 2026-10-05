@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import initialSimJson from './data/sim_data.json';
 import { SimData, QueuedNewsItem } from './types/market';
 import { buildOHLCV, populateAgentCalculations, runNewSimulation } from './services/simulator';
+import { DEFAULT_MOM_AGENT_IDS, populateMomAgents } from './services/momentumEngine';
 import { Sidebar } from './components/Sidebar';
 import { TopMetrics } from './components/TopMetrics';
 import { MarketOverviewTab } from './components/MarketOverviewTab';
@@ -18,11 +19,20 @@ export function App() {
     const { ohlcv, timeUnit } = buildOHLCV(raw.book.times_ns, raw.book.mids);
     const populatedAgents = populateAgentCalculations(raw.agents, raw.news_events_input, raw.baseline_ns);
 
+    // If mom_agents are not yet populated in JSON, generate them from the book price stream
+    const momAgentIds = raw.mom_agent_ids && raw.mom_agent_ids.length > 0 ? raw.mom_agent_ids : DEFAULT_MOM_AGENT_IDS;
+    const momPriceLog = raw.book.mids.map((m) => Math.round(m * 100));
+    const populatedMomAgents = raw.mom_agents && Object.keys(raw.mom_agents).length > 0
+      ? raw.mom_agents
+      : populateMomAgents(momAgentIds, momPriceLog, raw.book.times_ns, raw.baseline_ns, raw.news_events_input, raw.ticker);
+
     return {
       ...raw,
       ohlcv,
       time_unit: timeUnit,
       agents: populatedAgents,
+      mom_agent_ids: momAgentIds,
+      mom_agents: populatedMomAgents,
     };
   }, []);
 
@@ -30,6 +40,7 @@ export function App() {
   const [seed, setSeed] = useState<number>(defaultSimData.seed || 42);
   const [endTime, setEndTime] = useState<string>(defaultSimData.end_time || '16:00:00');
   const [numEkf, setNumEkf] = useState<number>(Object.keys(defaultSimData.agents).length || 5);
+  const [numMomEkf, setNumMomEkf] = useState<number>(defaultSimData.mom_agent_ids?.length || 5);
   const [queuedNews, setQueuedNews] = useState<QueuedNewsItem[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'agents' | 'news' | 'health'>('overview');
   const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -58,12 +69,13 @@ export function App() {
           endTime,
           ticker: simData.ticker || 'ABM',
           numEkf,
+          numMomEkf,
           newsEvents,
         });
 
         setSimData(newSim);
         showToast(
-          `Simulation complete! Generated ${newSim.book.mids.length.toLocaleString()} ticks, ${newSim.trades.length} trades across ${numEkf} EKF agents.`
+          `Simulation complete! Generated ${newSim.book.mids.length.toLocaleString()} ticks, ${newSim.trades.length} trades across ${numEkf} Fundamental & ${numMomEkf} Momentum EKF agents.`
         );
       } catch (err) {
         console.error(err);
@@ -78,6 +90,7 @@ export function App() {
     setSeed(defaultSimData.seed);
     setEndTime(defaultSimData.end_time);
     setNumEkf(Object.keys(defaultSimData.agents).length);
+    setNumMomEkf(defaultSimData.mom_agent_ids?.length || 5);
     setQueuedNews([]);
     showToast('Reset to original baseline dataset (Seed 42).');
   };
@@ -92,6 +105,8 @@ export function App() {
         setEndTime={setEndTime}
         numEkf={numEkf}
         setNumEkf={setNumEkf}
+        numMomEkf={numMomEkf}
+        setNumMomEkf={setNumMomEkf}
         queuedNews={queuedNews}
         setQueuedNews={setQueuedNews}
         onRunSimulation={handleRunSimulation}
@@ -203,8 +218,7 @@ export function App() {
         {/* Footer info matching dashboard.py caption */}
         <footer className="mt-8 pt-4 border-t border-slate-800 text-[11px] text-slate-500 font-mono flex flex-wrap items-center justify-between gap-2">
           <span>
-            Simulation: seed={simData.seed} | end_time={simData.end_time} | EKF agents: {Object.keys(simData.agents).length} |
-            Time unit: {simData.time_unit}
+            Simulation: seed={simData.seed} | end_time={simData.end_time} | Fundamental EKF: {Object.keys(simData.agents).length} | Momentum EKF: {simData.mom_agent_ids?.length || Object.keys(simData.mom_agents || {}).length} | Time unit: {simData.time_unit}
           </span>
           <span className="text-slate-600">ABIDES Market Sim • Migrated to Node.js & React</span>
         </footer>

@@ -1,4 +1,5 @@
-import { SimData, BookData, OHLCVCandle, AgentData, EKFUpdate, CautionUpdate, NewsEventLogged, OracleData, Trade, SummaryStatistics, AgentHyperparams, HoldingTimelineEntry } from '../types/market';
+import { SimData, BookData, OHLCVCandle, AgentData, EKFUpdate, CautionUpdate, NewsEventLogged, OracleData, Trade, SummaryStatistics, AgentHyperparams, HoldingTimelineEntry, MomAgentData } from '../types/market';
+import { DEFAULT_MOM_AGENT_IDS, populateMomAgents, generateMomHyperparams } from './momentumEngine';
 
 // Simple seeded PRNG (Mulberry32)
 export function createPRNG(seed: number) {
@@ -400,9 +401,10 @@ export function runNewSimulation(options: {
   endTime: string;
   ticker?: string;
   numEkf: number;
+  numMomEkf?: number;
   newsEvents: [string, string, number, string][];
 }): SimData {
-  const { seed, endTime, ticker = 'ABM', numEkf, newsEvents } = options;
+  const { seed, endTime, ticker = 'ABM', numEkf, numMomEkf = 5, newsEvents } = options;
   const prng = createPRNG(seed);
 
   // Time calculations
@@ -554,6 +556,17 @@ export function runNewSimulation(options: {
   // Populate EKF calculations
   const populatedAgents = populateAgentCalculations(agents, newsEvents, baselineNs);
 
+  // Generate Momentum EKF Agents
+  const momAgentIds: number[] = [];
+  const momBaseId = 1112;
+  for (let m = 0; m < numMomEkf; m++) {
+    momAgentIds.push(momBaseId + m);
+  }
+
+  // Common price stream in cents and times for momentum agents
+  const momPriceLog = mids.map((m) => Math.round(m * 100));
+  const momAgents = populateMomAgents(momAgentIds, momPriceLog, timesNs, baselineNs, newsEvents, ticker);
+
   return {
     seed,
     ticker,
@@ -574,6 +587,8 @@ export function runNewSimulation(options: {
     },
     trades,
     agents: populatedAgents,
+    mom_agent_ids: momAgentIds,
+    mom_agents: momAgents,
     news_events_input: newsEvents,
   };
 }

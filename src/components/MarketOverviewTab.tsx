@@ -13,6 +13,7 @@ export const MarketOverviewTab: React.FC<MarketOverviewTabProps> = ({ simData })
   const [viewMode, setViewMode] = useState<'candlestick' | 'ticks'>('candlestick');
   const [showOracle, setShowOracle] = useState(true);
   const [showEkf, setShowEkf] = useState(true);
+  const [showMomEkf, setShowMomEkf] = useState(false);
   const [showNewsLines, setShowNewsLines] = useState(true);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
@@ -82,6 +83,28 @@ export const MarketOverviewTab: React.FC<MarketOverviewTabProps> = ({ simData })
       };
     });
   }, [agents, baseline_ns, time_unit]);
+
+  // Momentum EKF series
+  const momAgents = simData.mom_agents || {};
+  const momSeries = useMemo(() => {
+    const colors = ['#06b6d4', '#14b8a6', '#f59e0b', '#ec4899', '#8b5cf6'];
+    return Object.entries(momAgents).map(([aid, mdata], idx) => {
+      const updates = mdata.kf_updates || [];
+      const ds = Math.max(1, Math.floor(updates.length / 300));
+      const pts = [];
+      for (let i = 0; i < updates.length; i += ds) {
+        pts.push({
+          timeDisplay: nsToDisplay(updates[i].time_ns, baseline_ns, time_unit),
+          trendPrice: Math.exp(updates[i].l_hat) / 100,
+        });
+      }
+      return {
+        name: mdata.name,
+        color: colors[idx % colors.length],
+        points: pts,
+      };
+    });
+  }, [momAgents, baseline_ns, time_unit]);
 
   // Bounds for Candlesticks
   const candleMinPrice = useMemo(() => {
@@ -184,6 +207,15 @@ export const MarketOverviewTab: React.FC<MarketOverviewTabProps> = ({ simData })
               className="accent-sky-500 rounded"
             />
             <span>EKF Estimates (x̂)</span>
+          </label>
+          <label className="flex items-center gap-1.5 cursor-pointer text-cyan-400 font-medium">
+            <input
+              type="checkbox"
+              checked={showMomEkf}
+              onChange={(e) => setShowMomEkf(e.target.checked)}
+              className="accent-cyan-500 rounded"
+            />
+            <span>Mom. Trends (l̂)</span>
           </label>
           <label className="flex items-center gap-1.5 cursor-pointer text-emerald-400 font-medium">
             <input
@@ -355,6 +387,31 @@ export const MarketOverviewTab: React.FC<MarketOverviewTabProps> = ({ simData })
                               const ratio = Math.max(0, Math.min(1, pt.timeDisplay / maxT));
                               const x = padding.left + ratio * (svgWidth - padding.left - padding.right);
                               const y = yToSvg(pt.xHat);
+                              return `${x},${y}`;
+                            })
+                            .join(' ')}
+                        />
+                      );
+                    })}
+
+                  {/* Momentum EKF Trend Overlays l̂ */}
+                  {showMomEkf &&
+                    momSeries.map((s, sIdx) => {
+                      if (s.points.length < 2) return null;
+                      const maxT = ohlcv[ohlcv.length - 1]?.time_display || 1;
+                      return (
+                        <polyline
+                          key={`mom-${sIdx}`}
+                          fill="none"
+                          stroke={s.color}
+                          strokeWidth="2"
+                          strokeDasharray="4 2"
+                          opacity="0.75"
+                          points={s.points
+                            .map((pt) => {
+                              const ratio = Math.max(0, Math.min(1, pt.timeDisplay / maxT));
+                              const x = padding.left + ratio * (svgWidth - padding.left - padding.right);
+                              const y = yToSvg(pt.trendPrice);
                               return `${x},${y}`;
                             })
                             .join(' ')}

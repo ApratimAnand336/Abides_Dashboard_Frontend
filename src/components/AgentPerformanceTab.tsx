@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { SimData, AgentHyperparams, HoldingTimelineEntry } from '../types/market';
 import { nsToDisplay, generateHyperparams } from '../services/simulator';
-import { ShieldCheck, Cpu, Brain, DollarSign, Briefcase, Info, TrendingUp, TrendingDown } from 'lucide-react';
+import { ShieldCheck, Cpu, Brain, DollarSign, Briefcase, Info, TrendingUp, TrendingDown, Compass, Layers } from 'lucide-react';
+import { MomentumAgentSection } from './MomentumAgentSection';
 
 interface AgentPerformanceTabProps {
   simData: SimData;
@@ -126,6 +127,9 @@ export const AgentPerformanceTab: React.FC<AgentPerformanceTabProps> = ({ simDat
   const agentIds = Object.keys(agents);
   const [selectedAgentId, setSelectedAgentId] = useState<string>(agentIds[0] || '1098');
   const [timelineHoverIndex, setTimelineHoverIndex] = useState<number | null>(null);
+  const [agentCategory, setAgentCategory] = useState<'all' | 'fundamental' | 'momentum'>('all');
+
+  const momCount = simData.mom_agent_ids?.length || Object.keys(simData.mom_agents || {}).length || 0;
 
   const selectedAgent = agents[selectedAgentId] || agents[agentIds[0]];
   const ekfUpdates = selectedAgent?.ekf_updates || [];
@@ -251,7 +255,51 @@ export const AgentPerformanceTab: React.FC<AgentPerformanceTabProps> = ({ simDat
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Agent Selector Header */}
+      {/* Category Filter Pills */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-2 rounded-xl border border-slate-800/80">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAgentCategory('all')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              agentCategory === 'all'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>All Agents ({agentIds.length + momCount})</span>
+          </button>
+          <button
+            onClick={() => setAgentCategory('fundamental')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              agentCategory === 'fundamental'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+            }`}
+          >
+            <Cpu className="w-3.5 h-3.5 text-sky-400" />
+            <span>Fundamental EKF ({agentIds.length})</span>
+          </button>
+          <button
+            onClick={() => setAgentCategory('momentum')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              agentCategory === 'momentum'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+            }`}
+          >
+            <Compass className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Momentum Trend Follower ({momCount})</span>
+          </button>
+        </div>
+        <span className="text-[11px] text-slate-500 font-mono hidden sm:inline">
+          Discrete Event Market Multi-Agent Ecosystem
+        </span>
+      </div>
+
+      {(agentCategory === 'all' || agentCategory === 'fundamental') && (
+        <>
+          {/* Agent Selector Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/80 border border-slate-800 p-4 rounded-xl backdrop-blur">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
@@ -805,6 +853,13 @@ export const AgentPerformanceTab: React.FC<AgentPerformanceTabProps> = ({ simDat
           </div>
         </div>
       </div>
+        </>
+      )}
+
+      {/* Render Momentum EKF Agent Section */}
+      {(agentCategory === 'all' || agentCategory === 'momentum') && (
+        <MomentumAgentSection simData={simData} />
+      )}
     </div>
   );
 };

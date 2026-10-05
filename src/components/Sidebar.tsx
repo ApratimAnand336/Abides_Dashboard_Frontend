@@ -10,6 +10,8 @@ interface SidebarProps {
   setEndTime: (t: string) => void;
   numEkf: number;
   setNumEkf: (n: number) => void;
+  numMomEkf: number;
+  setNumMomEkf: (n: number) => void;
   queuedNews: QueuedNewsItem[];
   setQueuedNews: React.Dispatch<React.SetStateAction<QueuedNewsItem[]>>;
   onRunSimulation: () => void;
@@ -25,6 +27,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setEndTime,
   numEkf,
   setNumEkf,
+  numMomEkf,
+  setNumMomEkf,
   queuedNews,
   setQueuedNews,
   onRunSimulation,
@@ -153,10 +157,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </select>
         </div>
 
-        {/* Number of EKF Agents */}
+        {/* Number of Fundamental EKF Agents */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-xs text-slate-400 font-medium">EKF Agents</label>
+            <label className="text-xs text-slate-400 font-medium">Fundamental EKF</label>
             <span className="text-xs font-mono text-indigo-400 font-bold">{numEkf}</span>
           </div>
           <input
@@ -167,6 +171,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
             value={numEkf}
             onChange={(e) => setNumEkf(parseInt(e.target.value, 10))}
             className="w-full accent-indigo-500 cursor-pointer"
+          />
+          <div className="flex justify-between text-[10px] text-slate-500 font-mono mt-0.5">
+            <span>1</span>
+            <span>10</span>
+            <span>20</span>
+          </div>
+        </div>
+
+        {/* Number of Momentum EKF Agents */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs text-slate-400 font-medium">Momentum EKF</label>
+            <span className="text-xs font-mono text-cyan-400 font-bold">{numMomEkf}</span>
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={20}
+            step={1}
+            value={numMomEkf}
+            onChange={(e) => setNumMomEkf(parseInt(e.target.value, 10))}
+            className="w-full accent-cyan-500 cursor-pointer"
           />
           <div className="flex justify-between text-[10px] text-slate-500 font-mono mt-0.5">
             <span>1</span>

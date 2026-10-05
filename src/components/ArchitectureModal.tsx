@@ -132,6 +132,62 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
           </div>
         </div>
 
+        {/* Momentum EKF Trend Follower Agent Breakdown */}
+        <div className="flex flex-col gap-3">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400">
+            Momentum EKF Trend Follower Agent Architecture
+          </h3>
+          <div className="bg-slate-950/90 rounded-xl p-4 border border-slate-800 flex flex-col gap-4 text-xs font-mono">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 font-bold text-[11px]">
+                1
+              </div>
+              <div>
+                <span className="text-slate-200 font-bold block">Trend Filter (Kalman Level & Velocity)</span>
+                <span className="text-slate-400 text-[11px]">
+                  Estimates log-price level l̂ and velocity v̂ with transition matrix F(dt, τ) and process noise Q. Tracks uncertainty covariance P and trend-strength score T = v̂ / sd(v̂). Self-calibrates noise scales during N_w warm-up ticks.
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 font-bold text-[11px]">
+                2
+              </div>
+              <div>
+                <span className="text-slate-200 font-bold block">Caution Modulator & Trend Confidence</span>
+                <span className="text-slate-400 text-[11px]">
+                  Directional view D = sign(v̂). Tracks virtual returns W_t = D_prev · ΔP to update emotional memory E_t and compute confidence C_t ∈ [0, 1].
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-pink-500/20 text-pink-400 flex items-center justify-center shrink-0 font-bold text-[11px]">
+                3
+              </div>
+              <div>
+                <span className="text-slate-200 font-bold block">4-State Machine (NEUTRAL → BULL / BEAR → WATCH)</span>
+                <span className="text-slate-400 text-[11px]">
+                  Transitions on price breakouts with |T| ≥ θ_in and non-choppy Kaufman ER. Exits via trailing STOP at k_stop · σ_τ or FADE when |T| &lt; θ_out.
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 font-bold text-[11px]">
+                4
+              </div>
+              <div>
+                <span className="text-slate-200 font-bold block">Pyramiding Ratchet & Dead-Band Sizing</span>
+                <span className="text-slate-400 text-[11px]">
+                  Calculates target exposure e_target between 0 and e_max. Ratchet allows exposure to increase only at new highs (p ≥ p_add + k_add · σ_τ). Places limit orders unless dead-band |Δn| &lt; max(n_min, b · n*) skips the order.
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Footer */}
         <div className="flex justify-end pt-2 border-t border-slate-800">
           <button

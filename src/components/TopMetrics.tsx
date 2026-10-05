@@ -13,6 +13,7 @@ export const TopMetrics: React.FC<TopMetricsProps> = ({ simData }) => {
   const delta = closePrice - openPrice;
   const isPositive = delta >= 0;
   const agentCount = Object.keys(simData.agents).length;
+  const momCount = simData.mom_agent_ids?.length || Object.keys(simData.mom_agents || {}).length || 0;
   const candlesCount = simData.ohlcv?.length || 0;
   const pricePointsCount = mids.length;
 
@@ -63,8 +64,8 @@ export const TopMetrics: React.FC<TopMetricsProps> = ({ simData }) => {
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">EKF Agents</span>
           <Users className="w-4 h-4 text-amber-400" />
         </div>
-        <p className="text-2xl font-bold text-slate-100 font-mono">{agentCount}</p>
-        <span className="text-[11px] text-slate-500">Active Kalman Traders</span>
+        <p className="text-2xl font-bold text-slate-100 font-mono">{agentCount + momCount}</p>
+        <span className="text-[11px] text-slate-500">{agentCount} Fund • {momCount} Mom</span>
       </div>
     </div>
   );
