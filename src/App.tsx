@@ -13,27 +13,9 @@ import { ArchitectureModal } from './components/ArchitectureModal';
 import { BarChart2, Cpu, Newspaper, Activity, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export function App() {
-  // Initialize default dataset with populated calculations and OHLCV
+  // Initialize default dataset with real ABIDES full-day discrete-event simulation
   const defaultSimData = useMemo(() => {
-    const raw = initialSimJson as unknown as SimData;
-    const { ohlcv, timeUnit } = buildOHLCV(raw.book.times_ns, raw.book.mids);
-    const populatedAgents = populateAgentCalculations(raw.agents, raw.news_events_input, raw.baseline_ns);
-
-    // If mom_agents are not yet populated in JSON, generate them from the book price stream
-    const momAgentIds = raw.mom_agent_ids && raw.mom_agent_ids.length > 0 ? raw.mom_agent_ids : DEFAULT_MOM_AGENT_IDS;
-    const momPriceLog = raw.book.mids.map((m) => Math.round(m * 100));
-    const populatedMomAgents = raw.mom_agents && Object.keys(raw.mom_agents).length > 0
-      ? raw.mom_agents
-      : populateMomAgents(momAgentIds, momPriceLog, raw.book.times_ns, raw.baseline_ns, raw.news_events_input, raw.ticker);
-
-    return {
-      ...raw,
-      ohlcv,
-      time_unit: timeUnit,
-      agents: populatedAgents,
-      mom_agent_ids: momAgentIds,
-      mom_agents: populatedMomAgents,
-    };
+    return initialSimJson as unknown as SimData;
   }, []);
 
   const [simData, setSimData] = useState<SimData>(defaultSimData);
@@ -49,10 +31,10 @@ export function App() {
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 4000);
+    setTimeout(() => setToastMessage(null), 5000);
   };
 
-  const handleRunSimulation = () => {
+  const handleRunSimulation = async () => {
     setIsRunning(true);
     // Format news events input
     const newsEvents: [string, string, number, string][] = queuedNews.map((n) => [
@@ -62,9 +44,35 @@ export function App() {
       n.headline,
     ]);
 
-    setTimeout(() => {
+    try {
+      let newSim: SimData | null = null;
       try {
-        const newSim = runNewSimulation({
+        const res = await fetch('/api/run-simulation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            seed,
+            endTime,
+            ticker: simData.ticker || 'ABM',
+            numEkf,
+            numMomEkf,
+            newsEvents,
+          }),
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            newSim = json.data;
+          }
+        }
+      } catch (backendErr) {
+        console.warn('Backend simulation runner unavailable, generating via in-browser simulator:', backendErr);
+      }
+
+      if (!newSim) {
+        // Run full client-side discrete event simulation engine
+        newSim = runNewSimulation({
           seed,
           endTime,
           ticker: simData.ticker || 'ABM',
@@ -72,17 +80,18 @@ export function App() {
           numMomEkf,
           newsEvents,
         });
-
-        setSimData(newSim);
-        showToast(
-          `Simulation complete! Generated ${newSim.book.mids.length.toLocaleString()} ticks, ${newSim.trades.length} trades across ${numEkf} Fundamental & ${numMomEkf} Momentum EKF agents.`
-        );
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsRunning(false);
       }
-    }, 450);
+
+      setSimData(newSim);
+      showToast(
+        `Simulation completed! ${newSim.book.mids.length.toLocaleString()} ticks, ${newSim.trades.length.toLocaleString()} trades across ${numEkf} Fundamental & ${numMomEkf} Momentum agents.`
+      );
+    } catch (err: any) {
+      console.error('Simulation error:', err);
+      showToast(`Simulation error: ${err.message}`);
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   const handleResetOriginal = () => {

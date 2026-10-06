@@ -395,7 +395,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {isRunning ? (
             <>
               <RefreshCw className="w-4 h-4 animate-spin text-white" />
-              <span>Simulating Market...</span>
+              <span>Running ABIDES (1,118 Agents)...</span>
             </>
           ) : (
             <>

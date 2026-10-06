@@ -494,9 +494,9 @@ export function runNewSimulation(options: {
     currentMid += meanReversionPull + noise + newsShock;
     currentMid = Math.max(10, currentMid);
 
-    // Spread modulation (widens during news shocks and high volatility)
+    // Spread modulation (1 cent minimum tick spread, widening slightly during severe shocks)
     const shockIntensity = Math.abs(newsShock) + Math.abs(noise);
-    currentSpread = Math.max(0.01, Math.min(0.25, 0.03 + shockIntensity * 0.35 + prng() * 0.02));
+    currentSpread = shockIntensity > 0.08 ? Math.max(0.01, Math.min(0.04, 0.01 + shockIntensity * 0.08)) : 0.01;
 
     const halfSpread = currentSpread / 2;
     const bestBid = Number((currentMid - halfSpread).toFixed(2));
@@ -510,12 +510,12 @@ export function runNewSimulation(options: {
     bestAsks.push(bestAsk);
     spreads.push(spreadVal);
 
-    // Trade execution events
-    if (prng() < 0.035) {
+    // Trade execution events matching order book flow
+    if (prng() < 0.22) {
       trades.push({
         time_ns: tNs,
         price: prng() > 0.5 ? bestBid : bestAsk,
-        quantity: [100, 200, 500, 1000][Math.floor(prng() * 4)],
+        quantity: [100, 200, 300, 500][Math.floor(prng() * 4)],
       });
     }
 
